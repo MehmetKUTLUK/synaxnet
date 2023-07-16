@@ -1,0 +1,166 @@
+﻿@model Order
+@{
+    ViewData["title"] = "siparişler";
+}
+
+<div class="card container">
+    <div class="card-body">
+        <h2>
+            @ViewData["title"]
+        </h2>
+        <div class="row">
+            <div class="col-12 col-md-3 border-end">
+                <div class="nav flex-column">
+                    <div class="mb-3">
+                        <label for="statusSelect" class="form-label">Durum:</label>
+                        <select id="statusSelect" class="form-select">
+                            <option value="">Tümü</option>
+                            <option value="New">Yeni</option>
+                            <option value="Cancelled">İptal Edildi</option>
+                            <option value="Cargo">Kargo</option>
+                            <option value="Completed">Tamamlandı</option>
+                            <option value="Again">Yeniden</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <input type="checkbox" id="selectAllRows" /> Hepsini Seç
+                    </div>
+                    <div class="mb-3">
+                        <button id="updateStatusBtn" class="btn btn-primary">Durumu Güncelle</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-12">
+                <table class="datatable table table-striped table-bordered">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="selectAll" /></th>
+                            <th>Masal Adı</th>
+                            <th>adres</th>
+                            <th>şehir</th>
+                            <th>mail</th>
+                            <th>statü</th>
+                            <th>ip</th>
+                            <th>numara</th>
+                            <th>Kayıt Tarihi</th>
+                            <th>işlemler</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+        <partial name="_ToolBarPartial" />
+    </div>
+</div>
+
+@section Scripts{
+    <partial name="_DataTablesPartial" />
+    <script>
+        $(document).ready(() => {
+            const dt = createDatatable('/admin/order/tabledata', [
+                { title: '', data: null, orderable: false, searchable: false, render: (data, type, row, meta) => `<input type="checkbox" class="rowCheckbox" data-id="${row.id}" />` },
+                { title: 'Masal Adı', data: 'name' },
+                { title: 'adres', data: 'address' },
+                { title: 'şehir', data: 'city' },
+                { title: 'mail', data: 'email' },
+                { title: 'statü', data: 'status' },
+                { title: 'ip', data: 'ipadres' },
+                { title: 'numara', data: 'phoneNumber' },
+                { title: 'Kayıt Tarihi', data: 'dateCreated' },
+                {
+                    title: 'işlemler',
+                    data: 'id',
+                    render: (r, i, d, t) => {
+                        return `
+                                    <a class="btn btn-link" href="/admin/order/edit/${d.id}"><i class="fa fa-edit"></i> Düzenle</a>
+                                    <a class="btn btn-link remove-btn" href="/admin/order/delete/${d.id}"><i class="fa fa-trash"></i> Sil</a>
+                                `;
+                    }
+                }
+            ], () => {
+                $('.remove-btn').on('click', (evt) => {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'UYARI!',
+                        html: 'Emin misiniz?',
+                        showCancelButton: true,
+                        cancelButtonText: 'İptal',
+                        confirmButtonText: 'Sil'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.location = $(evt.currentTarget).attr('href');
+                        }
+                    });
+                    return false;
+                });
+
+                $('#statusSelect').on('change', () => {
+                    const selectedStatus = $('#statusSelect').val();
+                    dt.columns(5).search(selectedStatus).draw();
+                });
+
+                $('.rowCheckbox').on('change', function () {
+                    const allChecked = $('.rowCheckbox:checked').length === $('.rowCheckbox').length;
+                    $('#selectAll').prop('checked', allChecked);
+                });
+
+                $('#selectAllRows').on('change', function () {
+                    const isChecked = $(this).prop('checked');
+                    $('.rowCheckbox').prop('checked', isChecked);
+                });
+
+                $('#updateStatusBtn').on('click', function () {
+                    const selectedStatus = $('#statusSelect').val();
+                    const selectedOrders = $('.rowCheckbox:checked').map(function () {
+                        return $(this).data('id');
+                    }).get();
+
+                    if (selectedOrders.length > 0) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'UYARI!',
+                            html: 'Seçili siparişlerin durumunu güncellemek istediğinize emin misiniz?',
+                            showCancelButton: true,
+                            cancelButtonText: 'İptal',
+                            confirmButtonText: 'Güncelle'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                updateOrderStatus(selectedOrders, selectedStatus);
+                            }
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'UYARI!',
+                            html: 'Lütfen en az bir sipariş seçin',
+                            confirmButtonText: 'Tamam'
+                        });
+                    }
+                });
+            });
+        });
+
+        function updateOrderStatus(orderIds, status) {
+            $.ajax({
+                url: '/admin/order/updatestatus',
+                method: 'POST',
+                data: {
+                    orderIds: orderIds,
+                    status: status
+                },
+                success: function (response) {
+                    // Başarılı yanıtta gerekli işlemleri yapabilirsiniz
+                    console.log('Sipariş durumu güncellendi');
+                    // Tabloyu yeniden çiz veya sayfayı yenile
+                    dt.draw();
+                    // veya
+                    // location.reload();
+                },
+                error: function (xhr, status, error) {
+                    // Hata durumunda gerekli işlemleri yapabilirsiniz
+                    console.error('Sipariş durumu güncellenirken bir hata oluştu');
+                }
+            });
+        }
+    </script>
+}

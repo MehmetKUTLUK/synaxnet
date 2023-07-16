@@ -1,0 +1,37 @@
+﻿@{
+    
+}
+@using synaxnet.Data;
+@model IEnumerable<Product>
+
+    <div class="row justify-content-center">
+            @foreach (var product in ViewBag.MostViews as IEnumerable<Product>)
+            {
+                <div class="col-lg-8 col-md-6" >
+                    <div class="service-item  position-relative">
+                        <a asp-action="Product" asp-route-id="@product.Id">
+                            <img style="width: 200px; height: auto;" class="card-img-top me-5" src="@product.Photo"  />
+                        </a>
+                <a asp-action="Product" asp-route-id="@product.Id" class="text-decoration-none">
+                            <h3>@product.Name</h3>
+                        </a>
+                        @{
+                            var sentences = product.Text.Split(new[] { '.' }, StringSplitOptions.RemoveEmptyEntries);
+                            var firstThreeSentences = string.Join(".", sentences.Take(3));
+                        }
+                       <p>@(firstThreeSentences + "...")</p>
+
+
+                        <a class="btn btn-outline-warning" asp-controller="Order" asp-action="Order" >
+                          <i >Devamı için Tıklayınız...</i>
+
+                        </a>
+                        <p>@product.Date</p>
+                    </div>
+                    
+                </div>
+                <hr style="color:white;" />
+
+                <!-- End Service Item -->
+            }
+        </div>
